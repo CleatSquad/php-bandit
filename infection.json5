@@ -9,21 +9,21 @@
             report: "main",
         },
     },
-    // The sampler has a handful of mutants no test can kill, because the mutated
-    // code draws from the same distribution as the original. They are listed
-    // here with the reason, rather than left to be re-investigated every run.
+    // Only mutants that provably cannot be killed are ignored, each with the
+    // argument for why. Anything that merely looks hard to kill is left in:
+    // a surviving mutant is information, and silencing it throws that away.
     mutators: {
         "@default": true,
 
-        // Box-Muller: cos(θ) has the same law for θ uniform over (0, 2π) as over
-        // any (0, kπ) with k >= 1, so scaling the angle changes nothing observable.
-        // Marsaglia & Tsang's 1/3 and 9 are fixed by the derivation, and the
-        // (1 + c·x) term is symmetric in x, which is standard normal.
+        // Box-Muller: cos(θ) has the same law for θ uniform over (0, 2π) as
+        // over any (0, kπ) with k >= 1, so scaling the angle is unobservable.
+        // The (1 + c·x) term is symmetric in x, which is standard normal, so
+        // flipping that sign draws from the same distribution.
         IncrementInteger: {
-            ignoreSourceCodeByRegex: ["2\\.0 \\* M_PI.*", ".*1\\.0 \\/ 3\\.0.*", ".*sqrt\\(9\\.0.*"],
+            ignoreSourceCodeByRegex: [".*2\\.0 \\* M_PI.*", ".*getInt\\(1, self::DRAW_RANGE - 1\\).*"],
         },
         DecrementInteger: {
-            ignoreSourceCodeByRegex: ["2\\.0 \\* M_PI.*", ".*1\\.0 \\/ 3\\.0.*", ".*sqrt\\(9\\.0.*"],
+            ignoreSourceCodeByRegex: [".*2\\.0 \\* M_PI.*", ".*getInt\\(1, self::DRAW_RANGE - 1\\).*"],
         },
         Minus: {
             ignoreSourceCodeByRegex: [".*getInt\\(1, self::DRAW_RANGE - 1\\).*"],
@@ -31,15 +31,21 @@
         Plus: {
             ignoreSourceCodeByRegex: [".*\\(1\\.0 \\+ \\$c \\* \\$x\\).*"],
         },
-        // Moving the top of the draw range by one unit in 2^53 is not observable,
-        // and PHP_INT_SIZE cannot take its other branch on a 64-bit test runner.
+        // PHP_INT_SIZE cannot take its other branch on a 64-bit runner, and both
+        // ends of the draw range guard events of probability 2^-53: a shifted
+        // bound is not reachable by any finite number of draws.
         GreaterThanOrEqualTo: {
             ignoreSourceCodeByRegex: [".*PHP_INT_SIZE.*"],
         },
         LessThanOrEqualTo: {
-            // v == 0.0 exactly has probability zero, and would loop forever on
-            // log(0) if it ever happened — the boundary is unreachable either way.
+            // v == 0.0 exactly has probability zero, and the acceptance test
+            // below would reject it anyway through log(0).
             ignoreSourceCodeByRegex: [".*\\$v <= 0\\.0.*"],
+        },
+        LessThan: {
+            // Likewise, the acceptance test turning strict into non-strict only
+            // matters when log(u) lands exactly on the threshold.
+            ignoreSourceCodeByRegex: [".*log\\(\\$u\\) <.*"],
         },
     },
 }
