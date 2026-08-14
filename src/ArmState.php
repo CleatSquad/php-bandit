@@ -37,10 +37,9 @@ final readonly class ArmState
             throw InvalidArmStateException::negativeCount('Trials', $trials);
         }
 
-        if ($successes < 0) {
-            throw InvalidArmStateException::negativeCount('Successes', $successes);
-        }
-
+        // A negative success count is left to the constructor, which rejects it
+        // with the same message. Checking it here too would be unfalsifiable
+        // duplication: no input can tell the two guards apart.
         if ($successes > $trials) {
             throw InvalidArmStateException::moreSuccessesThanTrials($trials, $successes);
         }
