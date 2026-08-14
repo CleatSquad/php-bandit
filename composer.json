@@ -38,12 +38,25 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "CleatSquad\\Bandit\\Tests\\": "tests/"
+            "CleatSquad\\Bandit\\Tests\\": "tests/",
+            "CleatSquad\\Bandit\\Benchmarks\\": "benchmarks/"
         }
     },
     "scripts": {
         "test": "phpunit",
-        "analyse": "phpstan analyse"
+        "analyse": "phpstan analyse",
+        "bench": [
+            "@composer install --working-dir=tools/phpbench --no-interaction",
+            "tools/phpbench/vendor/bin/phpbench run --report=aggregate"
+        ],
+        "mutation": [
+            "@composer install --working-dir=tools/infection --no-interaction",
+            "tools/infection/vendor/bin/infection --show-mutations --threads=max"
+        ]
+    },
+    "scripts-descriptions": {
+        "bench": "Runs the benchmark suite (installs the benchmark toolchain on first use).",
+        "mutation": "Runs mutation testing (installs the toolchain on first use; needs pcov or xdebug)."
     },
     "config": {
         "sort-packages": true

@@ -89,6 +89,41 @@ final class ThompsonSamplingDistributionTest extends TestCase
         );
     }
 
+    /**
+     * The mean alone does not pin the curve down: a sampler stuck on the mean
+     * would pass the test above. The spread has to match too.
+     */
+    #[DataProvider('posteriors')]
+    public function testSampleVarianceMatchesThePosteriorVariance(int $successes, int $failures): void
+    {
+        $policy = ThompsonSamplingPolicy::withSeed(31337);
+
+        $draws = [];
+        $total = 0.0;
+        for ($i = 0; $i < self::SAMPLE_COUNT; $i++) {
+            $draw = $policy->sample($successes, $failures);
+            $draws[] = $draw;
+            $total += $draw;
+        }
+
+        $mean = $total / self::SAMPLE_COUNT;
+        $squaredError = 0.0;
+        foreach ($draws as $draw) {
+            $squaredError += ($draw - $mean) ** 2;
+        }
+
+        $expected = $policy->posteriorVariance($successes, $failures);
+
+        // Relative tolerance: the variance of Beta(501, 501) is four orders of
+        // magnitude below that of the prior, so an absolute delta is meaningless.
+        self::assertEqualsWithDelta(
+            1.0,
+            ($squaredError / (self::SAMPLE_COUNT - 1)) / $expected,
+            0.05,
+            sprintf('Sample spread does not match Beta(%d, %d).', 1 + $successes, 1 + $failures),
+        );
+    }
+
     public function testEveryDrawStaysInTheUnitInterval(): void
     {
         $policy = ThompsonSamplingPolicy::withSeed(7);

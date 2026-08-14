@@ -157,17 +157,6 @@ final class SelectionTest extends TestCase
         self::assertSame($full->selectedArm, $shorthand);
     }
 
-    /** Remove alongside selectBestArm() in 0.3.0. */
-    public function testDeprecatedSelectBestArmDelegatesToSelectArm(): void
-    {
-        $arms = ['a' => new ArmState(4, 4), 'b' => new ArmState(9, 2)];
-
-        $deprecated = ThompsonSamplingPolicy::withSeed(18)->selectBestArm($arms);
-        $current = ThompsonSamplingPolicy::withSeed(18)->selectArm($arms);
-
-        self::assertSame($current, $deprecated);
-    }
-
     /**
      * @param array<string, ArmState> $arms
      * @return array<string, int>

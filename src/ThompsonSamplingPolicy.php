@@ -16,6 +16,9 @@ final class ThompsonSamplingPolicy implements BanditPolicyInterface
     /** Beta(1,1) variance — the uninformed prior's uncertainty, used to normalize posteriorWeight() to 0..1. */
     private const PRIOR_VARIANCE = 1.0 / 12.0;
 
+    /** Granularity of a uniform draw: 2^53, or PHP_INT_MAX on a 32-bit build, which is already below it. */
+    private const DRAW_RANGE = PHP_INT_SIZE >= 8 ? 9007199254740992 : PHP_INT_MAX;
+
     private readonly \Random\Randomizer $randomizer;
 
     public function __construct(?\Random\Randomizer $randomizer = null)
@@ -43,13 +46,17 @@ final class ThompsonSamplingPolicy implements BanditPolicyInterface
         }
 
         $samples = [];
-        $selectedArm = array_key_first($arms);
-        $bestSample = -1.0;
 
         foreach ($arms as $armId => $state) {
-            $sample = $this->sample($state->successes, $state->failures);
-            $samples[$armId] = $sample;
+            $samples[$armId] = $this->sample($state->successes, $state->failures);
+        }
 
+        // The first arm opens the comparison, rather than a sentinel value that
+        // every draw has to be assumed to beat. On a tie the first arm wins.
+        $selectedArm = array_key_first($samples);
+        $bestSample = $samples[$selectedArm];
+
+        foreach ($samples as $armId => $sample) {
             if ($sample > $bestSample) {
                 $bestSample = $sample;
                 $selectedArm = $armId;
@@ -68,17 +75,6 @@ final class ThompsonSamplingPolicy implements BanditPolicyInterface
     public function selectArm(array $arms): string|int
     {
         return $this->select($arms)->selectedArm;
-    }
-
-    /**
-     * @param array<string|int, ArmState> $arms
-     * @throws EmptyArmSetException
-     * @deprecated since 0.2.0, use selectArm() or select(). Removed in 0.3.0.
-     *             The name promised an argmax; the pick is a posterior draw.
-     */
-    public function selectBestArm(array $arms): string|int
-    {
-        return $this->selectArm($arms);
     }
 
     /** @throws InvalidArmStateException */
@@ -162,9 +158,16 @@ final class ThompsonSamplingPolicy implements BanditPolicyInterface
         return sqrt(-2.0 * log($u1)) * cos(2.0 * M_PI * $u2);
     }
 
-    /** Uniform(0,1), exclusive both ends. */
+    /**
+     * Uniform(0,1), exclusive both ends.
+     *
+     * Both bounds have to be unreachable: log(0) is -INF and log(1) collapses
+     * the normal draw to zero. Dividing by 2^53 keeps every ratio exact in
+     * double precision, so the top draw stays strictly below 1.0 — over
+     * PHP_INT_MAX the last few ratios round up to exactly 1.0.
+     */
     private function uniformOpen01(): float
     {
-        return ($this->randomizer->getInt(1, PHP_INT_MAX - 1)) / PHP_INT_MAX;
+        return $this->randomizer->getInt(1, self::DRAW_RANGE - 1) / self::DRAW_RANGE;
     }
 }
