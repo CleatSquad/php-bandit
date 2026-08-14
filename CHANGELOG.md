@@ -5,6 +5,14 @@ All notable changes to `cleatsquad/php-bandit` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-14
+
+Documentation only. No file under `src/` differs from `1.0.0`.
+
+`v1.0.0` was tagged one commit before the release notes were merged, so the
+archive it produced still described the release as an unreleased `0.3.0` and
+carried no stability section. This release is that tag, done right.
+
 ## [1.0.0] - 2026-08-14
 
 The API is frozen. `0.x` was the room to correct its shape, and that work is
@@ -148,6 +156,7 @@ leaves room to correct it without a major release.
 - Negative success or failure counts are clamped to zero rather than corrupting
   the posterior.
 
+[1.0.1]: https://github.com/CleatSquad/php-bandit/releases/tag/v1.0.1
 [1.0.0]: https://github.com/CleatSquad/php-bandit/releases/tag/v1.0.0
 [0.2.0]: https://github.com/CleatSquad/php-bandit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/CleatSquad/php-bandit/releases/tag/v0.1.0
