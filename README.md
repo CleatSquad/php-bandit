@@ -1,5 +1,6 @@
 # PHP Bandit
 
+[![Latest Version](https://img.shields.io/packagist/v/cleatsquad/php-bandit.svg)](https://packagist.org/packages/cleatsquad/php-bandit)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-777bb4.svg)](composer.json)
 
@@ -229,13 +230,33 @@ a binary outcome.
 Poor fits: rewards that are not success/failure (this is the Bernoulli variant),
 or a setting where a single decision must be reproducible without a fixed seed.
 
-## Upgrading to 0.3.0
+## Stability
 
-`0.3.0` removes `selectBestArm()`, deprecated since `0.2.0`. Replace it with
+`1.0.0` freezes the public API. From here on the package follows
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) strictly: nothing
+listed below changes without a major release.
+
+- The signatures of `ThompsonSamplingPolicy`, `ArmState`, `SelectionResult` and
+  `BanditPolicyInterface`, including their public properties.
+- `BanditException` as the marker every exception here implements, and each
+  exception's SPL parent class.
+- Which exception a given invalid input throws.
+
+Three things are explicitly *not* covered, and may change in a minor release:
+
+- **The draws a given seed produces.** `withSeed()` guarantees that two runs of
+  the same version agree, not that two versions agree. Improving the sampler is
+  a bug fix, not a breaking change. Assert on distributions, not on values.
+- **Exception messages.** Catch the class, do not match the text.
+- **Anything marked `private`**, including how the posterior is drawn from.
+
+## Upgrading to 1.0.0
+
+`1.0.0` removes `selectBestArm()`, deprecated since `0.2.0`. Replace it with
 `selectArm()`; the behaviour is identical.
 
 ```php
-$policy->selectBestArm($arms); // gone in 0.3.0
+$policy->selectBestArm($arms); // gone in 1.0.0
 $policy->selectArm($arms);     // same decision, honest name
 ```
 
@@ -264,7 +285,7 @@ draws, same numbers.
 | `new ArmState($successes, $trials - $successes)` | `ArmState::fromTrials($trials, $successes)` |
 | negative counts were clamped to zero | they throw `InvalidArmStateException` |
 
-`selectBestArm()` still works in `0.2.0`, deprecated. It is gone in `0.3.0`: the
+`selectBestArm()` still works in `0.2.0`, deprecated. It is gone in `1.0.0`: the
 name promised an `argmax`, while what it returns is a posterior draw.
 
 ## Testing

@@ -5,11 +5,16 @@ All notable changes to `cleatsquad/php-bandit` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - Unreleased
+## [1.0.0] - 2026-08-14
 
-Quality and hardening. The API reaches the shape it is meant to freeze at
-`1.0.0`, and the claims the README makes about it are now backed by tests that
-would fail if they stopped being true.
+The API is frozen. `0.x` was the room to correct its shape, and that work is
+done: `0.2.0` reshaped it, this release removes the last deprecation and backs
+every claim the README makes with a test that would fail if it stopped being
+true. From here on, Semantic Versioning applies strictly — see the stability
+section of the README for what is covered and what is deliberately not.
+
+Planned as `0.3.0` and released as `1.0.0` instead, since there was nothing left
+to hold back: no `0.3.0` was ever tagged.
 
 ### Added
 
@@ -47,6 +52,15 @@ would fail if they stopped being true.
 ### Removed
 
 - **Breaking.** `selectBestArm()`, deprecated since `0.2.0`. Use `selectArm()`.
+- The negative-successes guard in `ArmState::fromTrials()`, which duplicated the
+  constructor's own check down to the message. Same behaviour, same exception.
+
+### Notes
+
+- Mutation testing reports a 100% MSI over `src`. Getting there closed four
+  guards whose removal a test asserting only the exception class could not
+  detect, and the tie-break in `select()`, which real randomness cannot exercise
+  because two draws are never equal.
 
 ## [0.2.0] - 2026-08-14
 
@@ -134,5 +148,6 @@ leaves room to correct it without a major release.
 - Negative success or failure counts are clamped to zero rather than corrupting
   the posterior.
 
+[1.0.0]: https://github.com/CleatSquad/php-bandit/releases/tag/v1.0.0
 [0.2.0]: https://github.com/CleatSquad/php-bandit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/CleatSquad/php-bandit/releases/tag/v0.1.0
