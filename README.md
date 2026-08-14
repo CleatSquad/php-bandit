@@ -171,12 +171,54 @@ exception in this package implements `BanditException`, so
 `catch (BanditException $e)` catches all of them — and each one still extends its
 natural SPL class.
 
+| Exception | Thrown when |
+|---|---|
+| `InvalidArmStateException` | a count is negative, or successes exceed trials |
+| `EmptyArmSetException` | `select()` is given no candidate arm |
+| `InvalidSelectionException` | a `SelectionResult` is built from a decision that could not have happened |
+
+**A result cannot contradict itself.** `SelectionResult` validates its own
+bookkeeping: the samples are non-empty, the selected arm was drawn, and
+`$sample` is the draw that arm got. The winning draw is *not* required to be the
+largest one — a policy other than Thompson Sampling may pick against its own
+samples, and `SelectionResult` is the shared return type of
+`BanditPolicyInterface`.
+
 ## Statistical validation
 
-Sample distributions were checked against the exact Beta CDF with a
-Kolmogorov-Smirnov test across several posteriors — uninformed, balanced,
-skewed, and highly concentrated — over independent seeds, alongside moment
-matching on the underlying Gamma draws. See the test suite.
+A sampler can pass every unit test and still draw from the wrong curve, so the
+suite checks the distribution itself. Every run below is seeded: the assertions
+are deterministic, not flaky.
+
+- **Goodness of fit.** Draws are compared to the exact Beta CDF with a
+  Kolmogorov-Smirnov test at the 99% level, across uninformed, balanced, skewed
+  and highly concentrated posteriors.
+- **Moments.** Empirical mean and variance are matched against
+  `posteriorMean()` and `posteriorVariance()`, the variance on a relative
+  tolerance since it spans four orders of magnitude across those posteriors.
+- **Regret.** A full bandit episode of 20,000 rounds is simulated against known
+  conversion rates. Cumulative regret has to grow sublinearly: regret per round
+  keeps falling, and the second half of a run costs less than the first.
+- **Invariants.** Laws that hold for every input — draws inside the open unit
+  interval, trials equal to successes plus failures, a selection only ever
+  reporting arms it was given, a seed always replaying the same decision — are
+  checked on generated cases rather than hand-picked ones.
+
+## Performance
+
+Measured with PHPBench on PHP 8.4, one decision per operation:
+
+| Operation | Cost |
+|---|---|
+| `select()` over 2 arms | ~3.3 μs |
+| `select()` over 10 arms | ~14 μs |
+| `select()` over 100 arms | ~146 μs |
+| `sample()` | ~1.3 μs |
+| `posteriorMean()` | ~0.2 μs |
+
+Cost is linear in the number of arms and flat in the amount of evidence: a
+posterior backed by ten thousand observations draws as fast as an uninformed
+one. Run `composer bench` for the numbers on your own hardware.
 
 ## When to use it
 
@@ -186,6 +228,27 @@ a binary outcome.
 
 Poor fits: rewards that are not success/failure (this is the Bernoulli variant),
 or a setting where a single decision must be reproducible without a fixed seed.
+
+## Upgrading to 0.3.0
+
+`0.3.0` removes `selectBestArm()`, deprecated since `0.2.0`. Replace it with
+`selectArm()`; the behaviour is identical.
+
+```php
+$policy->selectBestArm($arms); // gone in 0.3.0
+$policy->selectArm($arms);     // same decision, honest name
+```
+
+Two smaller changes, neither of which affects correct code:
+
+- `SelectionResult` now rejects an inconsistent decision at construction time
+  with `InvalidSelectionException`. Only code building results by hand — a test
+  double, a custom policy — can hit this, and only when the result was already
+  wrong.
+- Uniform draws are taken over 2^53 rather than `PHP_INT_MAX`, so the top of the
+  interval can no longer round to exactly `1.0`. Drawn sequences change for a
+  given seed; distributions do not. Pin the version if you assert on exact
+  seeded values.
 
 ## Upgrading from 0.1.0
 
@@ -201,8 +264,8 @@ draws, same numbers.
 | `new ArmState($successes, $trials - $successes)` | `ArmState::fromTrials($trials, $successes)` |
 | negative counts were clamped to zero | they throw `InvalidArmStateException` |
 
-`selectBestArm()` still works in `0.2.0`, deprecated, and is removed in `0.3.0`.
-The name promised an `argmax`; what it returns is a posterior draw.
+`selectBestArm()` still works in `0.2.0`, deprecated. It is gone in `0.3.0`: the
+name promised an `argmax`, while what it returns is a posterior draw.
 
 ## Testing
 
@@ -210,7 +273,14 @@ The name promised an `argmax`; what it returns is a posterior draw.
 composer install
 composer test      # PHPUnit
 composer analyse   # PHPStan, max level
+composer bench     # PHPBench
+composer mutation  # Infection, needs pcov or xdebug
 ```
+
+`bench` and `mutation` install their own toolchain under `tools/` on first use.
+They are kept out of `require-dev` on purpose: the package is tested on PHP 8.2
+through 8.5, and neither tool has to be installable on all of them for the
+matrix to run.
 
 ## License
 

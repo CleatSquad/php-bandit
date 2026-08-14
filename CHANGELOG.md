@@ -5,6 +5,49 @@ All notable changes to `cleatsquad/php-bandit` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - Unreleased
+
+Quality and hardening. The API reaches the shape it is meant to freeze at
+`1.0.0`, and the claims the README makes about it are now backed by tests that
+would fail if they stopped being true.
+
+### Added
+
+- Regret simulation: a full 20,000-round bandit episode against known
+  conversion rates, asserting that cumulative regret grows sublinearly and that
+  the second half of a run costs less than the first.
+- Property-based tests, on generated rather than hand-picked cases, for the
+  invariants of `ArmState`, the posterior statistics and a selection.
+- Empirical variance matching against `posteriorVariance()`, on a relative
+  tolerance. Matching the mean alone would pass a sampler stuck on the mean.
+- `Exception\InvalidSelectionException`, thrown when a `SelectionResult` is
+  built from a decision that could not have happened.
+- Mutation testing with Infection and benchmarks with PHPBench, both installed
+  from `tools/` by `composer mutation` and `composer bench` rather than from
+  `require-dev`, so the PHP 8.2-8.5 matrix stays installable.
+- PHP 8.5 in the test matrix.
+- README sections on statistical validation, measured performance and the
+  exception hierarchy.
+
+### Changed
+
+- **Breaking.** Uniform draws are taken over `2^53` instead of `PHP_INT_MAX`.
+  The top of the range used to round to exactly `1.0` in double precision,
+  which collapsed a Box-Muller normal draw to zero — roughly one draw in `9e18`,
+  harmless in aggregate but outside the interval the sampler documents. Drawn
+  sequences change for a given seed; distributions do not.
+- `SelectionResult` validates its own bookkeeping: non-empty samples, a selected
+  arm that was drawn, and a `sample` equal to that arm's draw. The winning draw
+  is deliberately not required to be the largest — the type is shared by every
+  policy, and only Thompson Sampling picks the maximum.
+- `select()` opens its comparison on the first arm's draw instead of on a
+  sentinel `-1.0` that every draw was assumed to beat. Same decision, including
+  which arm wins a tie; one magic value less.
+
+### Removed
+
+- **Breaking.** `selectBestArm()`, deprecated since `0.2.0`. Use `selectArm()`.
+
 ## [0.2.0] - 2026-08-14
 
 Public API only. The algorithm is untouched: same draws, same numbers, same
