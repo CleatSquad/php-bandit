@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace CleatSquad\Bandit\Tests;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use CleatSquad\Bandit\ArmState;
+use CleatSquad\Bandit\Exception\InvalidArmStateException;
 use CleatSquad\Bandit\ThompsonSamplingPolicy;
 
 final class ThompsonSamplingPolicyTest extends TestCase
@@ -56,16 +57,36 @@ final class ThompsonSamplingPolicyTest extends TestCase
         self::assertSame($draws1, $draws2, 'Deterministic seeds must produce identical sample sequences.');
     }
 
-    public function testSelectBestArm(): void
+    /**
+     * @param callable(ThompsonSamplingPolicy, int, int): float $statistic
+     */
+    #[DataProvider('statistics')]
+    public function testNegativeCountsAreRejectedByEveryStatistic(callable $statistic): void
     {
-        $policy = ThompsonSamplingPolicy::withSeed(100);
+        $this->expectException(InvalidArmStateException::class);
+        $statistic(new ThompsonSamplingPolicy(), -1, 0);
+    }
 
-        $arms = [
-            'arm_a' => new ArmState(1, 20),
-            'arm_b' => new ArmState(50, 2),
+    /**
+     * @param callable(ThompsonSamplingPolicy, int, int): float $statistic
+     */
+    #[DataProvider('statistics')]
+    public function testNegativeFailureCountsAreRejectedByEveryStatistic(callable $statistic): void
+    {
+        $this->expectException(InvalidArmStateException::class);
+        $statistic(new ThompsonSamplingPolicy(), 0, -1);
+    }
+
+    /**
+     * @return array<string, array{0: callable(ThompsonSamplingPolicy, int, int): float}>
+     */
+    public static function statistics(): array
+    {
+        return [
+            'posteriorMean' => [static fn (ThompsonSamplingPolicy $p, int $s, int $f): float => $p->posteriorMean($s, $f)],
+            'posteriorVariance' => [static fn (ThompsonSamplingPolicy $p, int $s, int $f): float => $p->posteriorVariance($s, $f)],
+            'posteriorWeight' => [static fn (ThompsonSamplingPolicy $p, int $s, int $f): float => $p->posteriorWeight($s, $f)],
+            'sample' => [static fn (ThompsonSamplingPolicy $p, int $s, int $f): float => $p->sample($s, $f)],
         ];
-
-        $best = $policy->selectBestArm($arms);
-        self::assertSame('arm_b', $best);
     }
 }

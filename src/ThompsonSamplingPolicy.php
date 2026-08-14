@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace CleatSquad\Bandit;
 
+use CleatSquad\Bandit\Exception\EmptyArmSetException;
+use CleatSquad\Bandit\Exception\InvalidArmStateException;
+
 /**
  * Beta-Bernoulli Thompson Sampling, native PHP.
  * Alpha and Beta parameters are successes/failures plus the Beta(1,1) uninformative prior.
@@ -26,24 +29,85 @@ final class ThompsonSamplingPolicy implements BanditPolicyInterface
         return new self(new \Random\Randomizer(new \Random\Engine\Mt19937($seed)));
     }
 
+    /**
+     * Draws once from every arm's posterior and returns the winner of that draw.
+     * The pick is stochastic by design: a trailing arm still gets explored.
+     *
+     * @param array<string|int, ArmState> $arms
+     * @throws EmptyArmSetException
+     */
+    public function select(array $arms): SelectionResult
+    {
+        if ($arms === []) {
+            throw EmptyArmSetException::create();
+        }
+
+        $samples = [];
+        $selectedArm = array_key_first($arms);
+        $bestSample = -1.0;
+
+        foreach ($arms as $armId => $state) {
+            $sample = $this->sample($state->successes, $state->failures);
+            $samples[$armId] = $sample;
+
+            if ($sample > $bestSample) {
+                $bestSample = $sample;
+                $selectedArm = $armId;
+            }
+        }
+
+        return new SelectionResult($selectedArm, $bestSample, $samples);
+    }
+
+    /**
+     * Shorthand for select() when only the winning key is needed.
+     *
+     * @param array<string|int, ArmState> $arms
+     * @throws EmptyArmSetException
+     */
+    public function selectArm(array $arms): string|int
+    {
+        return $this->select($arms)->selectedArm;
+    }
+
+    /**
+     * @param array<string|int, ArmState> $arms
+     * @throws EmptyArmSetException
+     * @deprecated since 0.2.0, use selectArm() or select(). Removed in 0.3.0.
+     *             The name promised an argmax; the pick is a posterior draw.
+     */
+    public function selectBestArm(array $arms): string|int
+    {
+        return $this->selectArm($arms);
+    }
+
+    /** @throws InvalidArmStateException */
     public function posteriorMean(int $successes, int $failures): float
     {
         [$alpha, $beta] = $this->posteriorParams($successes, $failures);
         return $alpha / ($alpha + $beta);
     }
 
+    /**
+     * Confidence in the posterior mean, 0 when uninformed and approaching 1 with evidence.
+     *
+     * @throws InvalidArmStateException
+     */
     public function posteriorWeight(int $successes, int $failures): float
     {
-        $variance = $this->posteriorVariance($successes, $failures);
-        return max(0.0, min(1.0, 1.0 - $variance / self::PRIOR_VARIANCE));
+        // Under the Beta(1,1) prior the posterior variance peaks at the prior's
+        // own 1/12, so this ratio is in (0, 1] and the result in [0, 1). No clamp.
+        return 1.0 - $this->posteriorVariance($successes, $failures) / self::PRIOR_VARIANCE;
     }
 
+    /** @throws InvalidArmStateException */
     public function posteriorVariance(int $successes, int $failures): float
     {
         [$alpha, $beta] = $this->posteriorParams($successes, $failures);
         return ($alpha * $beta) / (($alpha + $beta) ** 2 * ($alpha + $beta + 1));
     }
 
+    /** @throws InvalidArmStateException */
     public function sample(int $successes, int $failures): float
     {
         [$alpha, $beta] = $this->posteriorParams($successes, $failures);
@@ -53,36 +117,20 @@ final class ThompsonSamplingPolicy implements BanditPolicyInterface
     }
 
     /**
-     * Selects the arm key with the highest sampled reward value.
-     *
-     * @param array<string|int, ArmState> $arms
+     * @return array{0: float, 1: float}
+     * @throws InvalidArmStateException
      */
-    public function selectBestArm(array $arms): string|int
-    {
-        if (empty($arms)) {
-            throw new \InvalidArgumentException('Cannot select best arm from an empty array.');
-        }
-
-        // Seeded with the first arm rather than null: a draw is always in (0,1),
-        // so the loop replaces it, and the return type stays non-nullable.
-        $bestArm = array_key_first($arms);
-        $highestSample = -1.0;
-
-        foreach ($arms as $armId => $state) {
-            $sample = $this->sample($state->successes, $state->failures);
-            if ($sample > $highestSample) {
-                $highestSample = $sample;
-                $bestArm = $armId;
-            }
-        }
-
-        return $bestArm;
-    }
-
-    /** @return array{0: float, 1: float} */
     private function posteriorParams(int $successes, int $failures): array
     {
-        return [1.0 + max(0, $successes), 1.0 + max(0, $failures)];
+        if ($successes < 0) {
+            throw InvalidArmStateException::negativeCount('Successes', $successes);
+        }
+
+        if ($failures < 0) {
+            throw InvalidArmStateException::negativeCount('Failures', $failures);
+        }
+
+        return [1.0 + $successes, 1.0 + $failures];
     }
 
     /**
