@@ -1,0 +1,53 @@
+{
+    "name": "cleatsquad/php-bandit",
+    "description": "Beta-Bernoulli Thompson Sampling multi-armed bandit, in dependency-free PHP",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "bandit",
+        "multi-armed-bandit",
+        "thompson-sampling",
+        "beta-bernoulli",
+        "reinforcement-learning",
+        "statistics",
+        "ab-testing"
+    ],
+    "homepage": "https://github.com/cleatSquad/php-bandit",
+    "readme": "README.md",
+    "authors": [
+        {
+            "name": "Mohamed El Mrabet",
+            "email": "mimou78@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/cleatSquad/php-bandit/issues",
+        "source": "https://github.com/cleatSquad/php-bandit"
+    },
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CleatSquad\\Bandit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CleatSquad\\Bandit\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
