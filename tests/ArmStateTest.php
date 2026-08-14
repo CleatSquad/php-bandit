@@ -50,21 +50,32 @@ final class ArmStateTest extends TestCase
         self::assertSame(0, $state->failures);
     }
 
+    /**
+     * The messages are asserted, not just the class. Every guard in fromTrials()
+     * is followed by another one that rejects the same input for a different
+     * reason, so a missing guard would still throw — just about the wrong thing.
+     */
     public function testFromTrialsRejectsMoreSuccessesThanTrials(): void
     {
         $this->expectException(InvalidArmStateException::class);
+        $this->expectExceptionMessage('Successes cannot exceed trials, 11 of 10 given.');
+
         ArmState::fromTrials(10, 11);
     }
 
     public function testFromTrialsRejectsNegativeTrials(): void
     {
         $this->expectException(InvalidArmStateException::class);
+        $this->expectExceptionMessage('Trials must be zero or greater, -1 given.');
+
         ArmState::fromTrials(-1, 0);
     }
 
     public function testFromTrialsRejectsNegativeSuccesses(): void
     {
         $this->expectException(InvalidArmStateException::class);
+        $this->expectExceptionMessage('Successes must be zero or greater, -1 given.');
+
         ArmState::fromTrials(10, -1);
     }
 

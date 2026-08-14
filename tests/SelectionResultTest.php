@@ -39,9 +39,14 @@ final class SelectionResultTest extends TestCase
         self::assertSame('a', $result->selectedArm);
     }
 
+    /**
+     * The message is asserted because the next guard rejects an empty sample
+     * set too — the selected arm cannot be a key of it — for the wrong reason.
+     */
     public function testEmptySamplesAreRejected(): void
     {
         $this->expectException(InvalidSelectionException::class);
+        $this->expectExceptionMessage('at least one arm');
 
         new SelectionResult('a', 0.5, []);
     }
