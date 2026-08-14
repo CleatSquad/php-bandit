@@ -1,0 +1,9 @@
+{
+    "description": "Benchmark toolchain, kept out of the package's require-dev so the test matrix installs nothing it does not need.",
+    "require": {
+        "phpbench/phpbench": "^1.4"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

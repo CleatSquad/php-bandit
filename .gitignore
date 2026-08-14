@@ -3,5 +3,8 @@ composer.lock
 .phpunit.result.cache
 .phpunit.cache/
 /build/
+/tools/*/vendor/
+/tools/*/composer.lock
+/.phpbench/
 .idea/
 .vscode/
