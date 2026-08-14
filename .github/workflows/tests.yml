@@ -84,11 +84,12 @@ jobs:
         with:
           working-directory: tools/infection
 
-      # The floor comes from a token-level mutation run done off-tool (no
-      # coverage driver was available where this was written); raise it to the
-      # score Infection actually reports on the first green run.
+      # Infection reported 92.54% on the first run, with five escaped mutants
+      # that are now covered. The floor sits below the expected score because
+      # part of it comes from mutants killed on timeout, which is not stable to
+      # the percentage point across runners.
       - name: Run Infection
-        run: tools/infection/vendor/bin/infection --no-progress --threads=max --min-msi=85 --min-covered-msi=85
+        run: tools/infection/vendor/bin/infection --no-progress --threads=max --min-msi=95 --min-covered-msi=95
 
       - name: Upload the mutation report
         if: failure()

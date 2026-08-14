@@ -8,6 +8,7 @@ use CleatSquad\Bandit\ArmState;
 use CleatSquad\Bandit\BanditPolicyInterface;
 use CleatSquad\Bandit\Exception\BanditException;
 use CleatSquad\Bandit\Exception\EmptyArmSetException;
+use CleatSquad\Bandit\Tests\Support\ConstantEngine;
 use CleatSquad\Bandit\ThompsonSamplingPolicy;
 use PHPUnit\Framework\TestCase;
 
@@ -109,6 +110,26 @@ final class SelectionTest extends TestCase
                 self::assertLessThan(1.0, $sample);
             }
         }
+    }
+
+    /**
+     * With real randomness two draws are never equal, so the tie-break is
+     * unobservable. A constant engine makes it observable: every arm in the
+     * same state draws the same sample, and the first one has to win.
+     */
+    public function testTheFirstArmWinsATie(): void
+    {
+        $policy = new ThompsonSamplingPolicy(new \Random\Randomizer(new ConstantEngine()));
+
+        $result = $policy->select([
+            'first' => new ArmState(0, 0),
+            'second' => new ArmState(0, 0),
+            'third' => new ArmState(0, 0),
+        ]);
+
+        self::assertSame('first', $result->selectedArm);
+        self::assertSame($result->samples['first'], $result->samples['second']);
+        self::assertSame($result->samples['first'], $result->samples['third']);
     }
 
     public function testSingleArmIsAlwaysSelected(): void
