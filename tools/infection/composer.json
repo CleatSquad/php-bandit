@@ -1,7 +1,7 @@
 {
     "description": "Mutation testing toolchain, kept out of the package's require-dev so the test matrix stays installable on every supported PHP version.",
     "require": {
-        "infection/infection": "^0.34"
+        "infection/infection": "^0.35"
     },
     "config": {
         "allow-plugins": {
