@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CleatSquad\Bandit\Tests;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
 use CleatSquad\Bandit\Exception\InvalidArmStateException;
 use CleatSquad\Bandit\ThompsonSamplingPolicy;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 final class ThompsonSamplingPolicyTest extends TestCase
 {
