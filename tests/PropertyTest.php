@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace CleatSquad\Bandit\Tests;
 
 use CleatSquad\Bandit\ArmState;
-use CleatSquad\Bandit\ThompsonSamplingPolicy;
 use CleatSquad\Bandit\Tests\Support\Generator;
+use CleatSquad\Bandit\ThompsonSamplingPolicy;
 use PHPUnit\Framework\TestCase;
 
 /**
